@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+	<script type="text/javascript">
+	(function() {
+    //
+    // 字符错位-加密：
+    // 密钥长 ≥16，循环步长 10， 末尾余量反向对齐错位。
+    // 特点：
+    // 1. 密文为字符串中现有的字符，不易被检测出已加密；
+    // 2. 可适用于任意字符集；
+    // 3. 不增加文本的长度，即密文长度等于原文长度。
+    // 缺点：
+    // 1. 原文不应有固定特征，如 html 标签，否则易破解；
+    // 2. 原文长度必须不小于密钥长度。
+    // 推荐：
+    // 适用于较长的文本处理，一般为文章的正文段落。
+    //
+    // @param array key  - 0-N 连续数字随机排布
+    // @return string    - 加密后的字符串
+    //
+    String.prototype._displace = function( key )
+    {
+        if (key.length < 16 || this.length < key.length)
+            return  false;
+
+        var _pos = key.length, _buf = new Array(_pos);
+
+        var _sect = function(s) {
+            for (var _i=0; _i<key.length; ++_i) {
+                _buf[_i] = s.charAt(key[_i]);
+            }
+            return  [ _buf.slice(0, 10).join(''), _buf.slice(10).join('') ];
+        };
+
+        // _bs: back-string
+        var _arr = _sect(this), _to = _arr[0], _bs = this.length - _pos;
+
+        while (_bs >= 10) {
+            _arr = _sect( _arr[1] + this.substring(_pos, _pos + 10) );
+            _pos += 10;
+            _to += _arr[0];
+            _bs = this.length - _pos;
+        }
+        _to += _arr[1];
+
+        // 末尾余量处理
+        if (_bs > 0) {
+            var _ep = this.length - key.length;
+            _arr = _sect(_to.substring(_ep) + this.substring(_pos));
+            _to = _to.substring(0, _ep) + _arr.join('');
+        }
+
+        return  _to;
+    };
+
+
+    //
+    // 字符错位-解密： 从尾至头逆向计算
+    //
+    // @return string  - 解密后的字符串
+    //
+    String.prototype._undisplace = function( key )
+    {
+        if (key.length < 16) return  false;
+
+        var _buf = new Array(_pos),
+            _s2  = key.length - 10,  // 重叠长
+            _pos = parseInt((this.length - key.length) / 10) * 10 + key.length;
+
+        var _sect = function(s) {
+            for (var _i=0; _i<key.length; ++_i) {
+                _buf[key[_i]] = s.charAt(_i);
+            }
+            // [重叠段, 有效段]
+            return  [ _buf.slice(0, _s2).join(''), _buf.slice(_s2).join('') ];
+        };
+
+        return  (function(s) {
+            var _to = '', _arr = null;
+            // 末尾余量
+            if (_pos < s.length) {
+                _arr = _sect(s.slice(-key.length));
+                _to = _arr[1].slice(_pos - s.length);
+                s = s.slice(0, -key.length) + _arr[0] + _arr[1].slice(0, _pos - s.length);
+            }
+            _pos -= key.length;
+            _arr = _sect(s.slice(_pos));
+            _to = _arr[1] + _to;
+            _pos -= 10;
+            while (_pos >= 0) {
+                _arr = _sect( s.substring(_pos, _pos + 10) + _arr[0] );
+                _pos -= 10;
+                _to = _arr[1] + _to;
+            }
+
+            return  _arr[0] + _to;
+
+        })(this);
+    };
+
+})();
+
+
+(function () {
+    var _k2 = [7,2,15,3,1,13,10,5,12,8,6,14,4,0,9,11];
+
+	go=function () {
+        var s=document.getElementById('a').value;
+        s = s._displace(_k2);
+        s = s._displace(_k2);
+		document.getElementById('b').value=s;
+    };
+    back=function(){
+		var s=document.getElementById('a').value;
+         s = s._undisplace(_k2);
+         s = s._undisplace(_k2);
+		document.getElementById('b').value=s;
+    };
+})();
+	</script>
+</head>
+<body>
+<div style="width: 1000px;height:600px;">
+<textarea style="width: 450px;height: 500px;font-size: 20px;float: left"  id="a"></textarea>
+<div style="width: 76px;margin-top: 153px;float: left;text-align: center;">
+<button id="c" style="width: 70px;height: 29px;" onclick="go()">go></button>
+<button id="d" style="width: 70px;height: 29px;margin-top: 66px;" onclick="back()">back></button>
+</div>
+<textarea style="width: 450px;height: 500px;font-size: 20px;float: left"  id="b"></textarea>
+</div>
+</body>
+</html>

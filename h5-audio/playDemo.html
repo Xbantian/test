@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head lang="en">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>custom audio style</title>
+    <link href="style.css" rel="stylesheet">
+    <link href="play.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <audio id="human" autoplay="false" controls>
+        <source src="only-human.mp3"></source>
+    </audio>
+
+
+
+    <!--播放器结构开始 { -->
+    <div id="box" class="playerBoxAudio">
+        <p class="playerTitleAudio">only-human.mp3</p>
+        <button id="play" class="operationBtnAudio playAudio" type="button"></button>
+        <span id="currentTime" class="startTimeAudio">00:10</span>
+        <div id="progress" class="progressBarAudio">
+            <span id="bar" class="barInsideAudio"></span>
+            <button id="control" class="currentBtnAudio"></button>
+        </div>
+        <span id="endTime" class="endTimeAudio">12:10</span>
+    </div>
+    <!--} 播放器结构结束 -->
+
+    <br />
+
+
+    <script>
+        function formatTime(seconds) {
+            return [
+                // parseInt(seconds / 60 / 60),
+                parseInt(seconds / 60 % 60),
+                parseInt(seconds % 60)
+            ]
+                .join(":")
+                .replace(/\b(\d)\b/g, "0$1");
+        }
+
+        window.onload = function () {
+            let box = document.getElementById("box");
+            let audio = document.getElementById("human");
+            let play = document.getElementById("play");
+            let currentTime = document.getElementById("currentTime");
+            let endTime = document.getElementById("endTime");
+
+            currentTime.innerText = formatTime(audio.currentTime);
+            endTime.innerText = formatTime(audio.duration);
+
+            play.onclick = function () {
+                if (audio.paused) {
+                    play.className = "operationBtn play";
+                    audio.play();
+                } else {
+                    play.className = "operationBtn pause";
+                    audio.pause();
+                }
+            }
+
+            let progress = document.getElementById("progress");
+            let bar = document.getElementById("bar");
+            let control = document.getElementById("control");
+
+            //进度条事件
+            audio.addEventListener("timeupdate", function () {
+                let scales = audio.currentTime / audio.duration;
+                bar.style.width = progress.offsetWidth * scales + "px";
+                control.style.left = progress.offsetWidth * scales - 12 + "px";
+                currentTime.innerText = formatTime(audio.currentTime);
+            }, false);
+
+            //拖拽
+            control.onmousedown = function (e) {
+                audio.pause();
+                document.onmousemove = function (e) {
+                    let leftv = e.clientX - progress.offsetLeft;
+                    if (leftv <= 0) {
+                        leftv = 0;
+                    }
+                    if (leftv >= progress.offsetWidth) {
+                        leftv = progress.offsetWidth;
+                    }
+                    bar.style.width = leftv + "px";
+                    control.style.left = leftv + "px";
+                    let cut = leftv / progress.offsetWidth * audio.duration;
+                    currentTime.innerText = formatTime(cut);
+                }
+
+                document.onmouseup = function () {
+                    let scales = control.offsetLeft / progress.offsetWidth;
+                    audio.currentTime = audio.duration * scales;
+                    audio.play();
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                }
+            }
+
+        }
+    </script>
+
+</body>
+
+</html>
